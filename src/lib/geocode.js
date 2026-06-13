@@ -40,44 +40,69 @@ export async function geocode(query) {
 }
 
 export function extractLocation(text) {
-  const towns = [
+  const clean = text.replace(/\s+/g, " ");
+
+  // -----------------------------
+  // 1. Barangay-level detection
+  // -----------------------------
+  const brgyMatch = clean.match(
+    /\b(?:Brgy\.?|Barangay)\s*([A-Z][a-zA-Z0-9\s-]{2,40})/i
+  );
+
+  if (brgyMatch) {
+    return `Barangay ${brgyMatch[1].trim()}, Isabela, Philippines`;
+  }
+
+  // -----------------------------
+  // 2. Purok / Sitio detection
+  // -----------------------------
+  const purokMatch = clean.match(
+    /\b(?:Purok|Sitio)\s*([A-Z0-9][a-zA-Z0-9\s-]{1,40})/i
+  );
+
+  if (purokMatch) {
+    return `${purokMatch[0].trim()}, Isabela, Philippines`;
+  }
+
+  // -----------------------------
+  // 3. Municipality detection (BEST SIGNAL)
+  // -----------------------------
+  const municipalities = [
     "Ilagan",
     "Santiago",
     "Cauayan",
+    "Jones",
+    "San Mateo",
     "Tumauini",
     "Alicia",
     "Roxas",
-    "Cabatuan",
-    "Jones",
-    "San Mateo",
     "Echague",
+    "Cabatuan",
     "Ramon",
-    "Naguilian",
+    "Reina Mercedes",
     "San Mariano",
     "Delfin Albano",
-    "Maconacon",
-    "Palanan",
-    "Dinapigue",
-    "Cabagan",
-    "Reina Mercedes",
+    "Naguilian",
+    "Gamu",
   ];
 
-  // First: look for known municipalities
-  const lower = text.toLowerCase();
+  const lower = clean.toLowerCase();
 
-  for (const town of towns) {
-    if (lower.includes(town.toLowerCase())) {
-      return `${town}, Isabela, Philippines`;
+  for (const m of municipalities) {
+    if (lower.includes(m.toLowerCase())) {
+      return `${m}, Isabela, Philippines`;
     }
   }
 
-  // Fallback regex
-  const match = text.match(
-    /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*Isabela\b/
+  // -----------------------------
+  // 4. "in/at/near" pattern fallback
+  // -----------------------------
+  const phraseMatch = clean.match(
+    /\b(?:in|at|near|along|within)\s+([A-Z][a-zA-Z\s]{2,40}),?\s*Isabela/i
   );
 
-  if (match) {
-    return `${match[1]}, Isabela, Philippines`;
+  if (phraseMatch) {
+    return `${phraseMatch[1].trim()}, Isabela, Philippines`;
   }
 
   return null;
