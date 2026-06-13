@@ -3,7 +3,7 @@ import { geocode, extractLocation } from "../../../lib/geocode";
 
 export const runtime = "nodejs"; // IMPORTANT for scraping
 
-// ---------------- CONFIG ----------------
+// ---------------- CONFIG ----------------//
 const SOURCES = {
   bombo: "https://news.bomboradyo.com/?s=isabela"
 };
