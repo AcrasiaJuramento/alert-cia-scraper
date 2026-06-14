@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { geocode, extractLocation } from "../../../lib/geocode";
+import { geocode, extractLocation, cleanGeocodeQuery, isValidLocation} from "../../../lib/geocode";
 
 export const runtime = "nodejs"; // IMPORTANT for scraping
 
@@ -207,14 +207,16 @@ export async function GET() {
       if (!type) continue;
 
       const location =
-        extractLocation(article.title || "") ||
-        extractLocation(article.snippet || "") ||
-        extractLocation(combined);
+      extractLocation(article.title || "") ||
+      extractLocation(article.snippet || "");
 
         let geo = null;
 
         if (location) {
-        geo = await geocode(location);
+        if (isValidLocation(location)) {
+          const query = cleanGeocodeQuery(location);
+          geo = await geocode(query);
+        }
         }
 
       results.push({

@@ -1,5 +1,7 @@
 const geoCache = new Map();
 
+/* ---------------- GEO CODE ---------------- */
+
 export async function geocode(query) {
   const key = query.toLowerCase();
 
@@ -14,9 +16,12 @@ export async function geocode(query) {
 
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "AlertCIA/1.0",
+        "User-Agent": "AlertCIA/1.0 (contact: alertcia)",
+        "Accept": "application/json",
       },
     });
+
+    if (!res.ok) return null;
 
     const data = await res.json();
 
@@ -32,78 +37,118 @@ export async function geocode(query) {
     };
 
     geoCache.set(key, result);
-
     return result;
-  } catch {
+  } catch (err) {
+    console.error("GEOCODE ERROR:", err);
     return null;
   }
 }
 
-export function extractLocation(text) {
-  const clean = text.replace(/\s+/g, " ");
+/* ---------------- VALIDATION ---------------- */
 
-  // -----------------------------
-  // 1. Barangay-level detection
-  // -----------------------------
+export function isValidLocation(location) {
+  if (!location) return false;
+
+  const badPatterns = [
+    /filed|stolen|dies|injured|accident|collision|probe|report/i,
+  ];
+
+  if (badPatterns.some((p) => p.test(location))) return false;
+
+  const hasGeoSignal =
+    /(Ilagan|Santiago|Cauayan|Jones|San Mateo|Tumauini|Alicia|Roxas|Echague|Cabatuan|Ramon)/i.test(
+      location
+    );
+
+  return hasGeoSignal;
+}
+
+/* ---------------- CLEAN QUERY ---------------- */
+
+export function cleanGeocodeQuery(location) {
+  return location
+    .replace(/barangay\s+/i, "")
+    .replace(/brgy\.?\s*/i, "")
+    .replace(/purok\s*\d*/i, "")
+    .replace(/sitio\s*/i, "")
+    .replace(/philippines/i, "")
+    .replace(/,+/g, ",")
+    .replace(/,\s*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/* ---------------- FINAL SANITIZER ---------------- */
+
+function sanitizeFinalLocation(loc) {
+  if (!loc) return null;
+
+  const bad = /stolen|filed|dies|injured|accident|collision|probe|report/i;
+  if (bad.test(loc)) return null;
+
+  return loc;
+}
+
+/* ---------------- EXTRACTION ---------------- */
+
+export function extractLocation(text) {
+  if (!text) return null;
+
+  const clean = text.replace(/\s+/g, " ");
+  const lower = clean.toLowerCase();
+
+  let barangay = null;
+  let municipality = null;
+
+  /* ---------------- BARANGAY ---------------- */
   const brgyMatch = clean.match(
-    /\b(?:Brgy\.?|Barangay)\s*([A-Z][a-zA-Z0-9\s-]{2,40})/i
+    /\b(?:Brgy\.?|Barangay)\s+([A-Za-z0-9\s\-]{2,50})/i
   );
 
   if (brgyMatch) {
-    return `Barangay ${brgyMatch[1].trim()}, Isabela, Philippines`;
-  }
-
-  // -----------------------------
-  // 2. Purok / Sitio detection
-  // -----------------------------
-  const purokMatch = clean.match(
-    /\b(?:Purok|Sitio)\s*([A-Z0-9][a-zA-Z0-9\s-]{1,40})/i
-  );
-
-  if (purokMatch) {
-    return `${purokMatch[0].trim()}, Isabela, Philippines`;
-  }
-
-  // -----------------------------
-  // 3. Municipality detection (BEST SIGNAL)
-  // -----------------------------
-  const municipalities = [
-    "Ilagan",
-    "Santiago",
-    "Cauayan",
-    "Jones",
-    "San Mateo",
-    "Tumauini",
-    "Alicia",
-    "Roxas",
-    "Echague",
-    "Cabatuan",
-    "Ramon",
-    "Reina Mercedes",
-    "San Mariano",
-    "Delfin Albano",
-    "Naguilian",
-    "Gamu",
-  ];
-
-  const lower = clean.toLowerCase();
-
-  for (const m of municipalities) {
-    if (lower.includes(m.toLowerCase())) {
-      return `${m}, Isabela, Philippines`;
+    const name = brgyMatch[1].trim();
+    if (!name.toLowerCase().includes("isabela")) {
+      barangay = name;
     }
   }
 
-  // -----------------------------
-  // 4. "in/at/near" pattern fallback
-  // -----------------------------
-  const phraseMatch = clean.match(
-    /\b(?:in|at|near|along|within)\s+([A-Z][a-zA-Z\s]{2,40}),?\s*Isabela/i
-  );
+  const knownBarangays = ["Malasin"];
 
-  if (phraseMatch) {
-    return `${phraseMatch[1].trim()}, Isabela, Philippines`;
+  for (const b of knownBarangays) {
+    if (lower.includes(b.toLowerCase())) {
+      barangay = b;
+      break;
+    }
   }
 
-  return null;
+  /* ---------------- MUNICIPALITY ---------------- */
+  const towns = [
+    "Ilagan","Santiago","Cauayan","Jones","San Mateo",
+    "Tumauini","Alicia","Roxas","Echague","Cabatuan",
+    "Ramon","Naguilian","San Mariano","Delfin Albano",
+    "Maconacon","Palanan","Dinapigue","Cabagan","Reina Mercedes"
+  ];
+
+  for (const t of towns) {
+    if (lower.includes(t.toLowerCase())) {
+      municipality = t;
+      break;
+    }
+  }
+
+  /* ---------------- STRICT RULE ---------------- */
+  // MUST have municipality or reject
+  if (!municipality) return null;
+
+  const parts = [];
+
+  if (barangay) {
+    parts.push(`Barangay ${barangay}`);
+  }
+
+  parts.push(`${municipality}, Isabela`);
+
+  let result = parts.join(", ") + ", Philippines";
+
+  return sanitizeFinalLocation(result);
 }
