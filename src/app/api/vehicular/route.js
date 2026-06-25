@@ -20,6 +20,36 @@ function isVehicular(text) {
   ].some((w) => low.includes(w));
 }
 
+function getVehicularSeverity(text) {
+  const low = text.toLowerCase();
+
+  if (
+    /(killed|dead|died|fatal|fatality|fatalities)/i.test(low)
+  ) {
+    return "BLACK";
+  }
+
+  const injuredMatch = low.match(/(\d+)\s+(injured|hurt)/);
+
+  if (injuredMatch) {
+    const count = Number(injuredMatch[1]);
+
+    if (count >= 5) return "RED";
+    if (count >= 1) return "YELLOW";
+  }
+
+  if (
+    low.includes("bus crash") ||
+    low.includes("truck collision") ||
+    low.includes("trapped") ||
+    low.includes("pinned")
+  ) {
+    return "RED";
+  }
+
+  return "GREEN";
+}
+
 export async function GET() {
   // 1. CHECK CACHE FIRST
   const cached = getCachedData();
@@ -38,9 +68,16 @@ export async function GET() {
   const data = await scrapeBombo();
 
   // 3. FILTER VEHICULAR
-  const vehicular = data.filter((item) =>
-    isVehicular(`${item.title} ${item.snippet}`)
-  );
+  const vehicular = data
+  .filter((item) =>
+    isVehicular(`${item.title || ""} ${item.snippet || ""}`)
+  )
+  .map((item) => ({
+    ...item,
+    severity: getVehicularSeverity(
+      `${item.title || ""} ${item.snippet || ""}`
+    ),
+  }));
 
   // 4. ALSO BUILD INCIDENTS (so cache stays complete)
   const incidents = data;

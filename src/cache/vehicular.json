@@ -8,7 +8,8 @@
     "location": "Barangay Malasin, San Mateo, Isabela, Philippines",
     "lat": 16.8691003,
     "lon": 121.5993015,
-    "display_name": "Malasin Elementary School, Alicia-San Mateo Road, San Mateo, Isabela, Cagayan Valley, Philippines"
+    "display_name": "Malasin Elementary School, Alicia-San Mateo Road, San Mateo, Isabela, Cagayan Valley, Philippines",
+    "severity": "GREEN"
   },
   {
     "title": "4 Injured as Van Crashes Into Parked Truck in Isabela | Bombo Radyo Philippines",
@@ -19,7 +20,8 @@
     "location": "Barangay Antonino, Alicia, Isabela, Philippines",
     "lat": 16.7824716,
     "lon": 121.6976213,
-    "display_name": "Antonino, Alicia, Isabela, Cagayan Valley, 3306, Philippines"
+    "display_name": "Antonino, Alicia, Isabela, Cagayan Valley, 3306, Philippines",
+    "severity": "YELLOW"
   },
   {
     "title": "Three Killed, Three Hurt in Multiple Motorcycle Crash",
@@ -30,6 +32,7 @@
     "location": null,
     "lat": null,
     "lon": null,
-    "display_name": null
+    "display_name": null,
+    "severity": "BLACK"
   }
 ]
